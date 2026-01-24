@@ -22,7 +22,7 @@ A modern, locally-runnable fact-checking application powered by **Ollama LLMs** 
 
 ## 🎨 Screenshot
 
-![Truth Seeker Dark Mode Interface](https://raw.githubusercontent.com/Lakshman7386/TruthSeeker/main/docs/screenshot-dark.png)
+![Truth Seeker Dark Mode Interface](docs/screenshot-70.png)
 
 *Dark mode interface showing the verification vault with history and main analysis panel*
 
