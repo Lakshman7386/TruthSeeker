@@ -81,7 +81,7 @@ const TruthSeeker = () => {
         if (targetText) formData.append('claimText', targetText);
         if (imageFile) formData.append('image', imageFile);
 
-        const backendResponse = await fetch('http://localhost:3000/api/verify', {
+        const backendResponse = await fetch('http://localhost:3001/api/verify', {
           method: 'POST',
           body: formData,
         });
@@ -130,12 +130,37 @@ const TruthSeeker = () => {
       const verdictMatch = textOutput.match(/VERDICT:\s*(TRUE|FALSE|MISLEADING|UNCERTAIN)/i);
       const confidenceMatch = textOutput.match(/CONFIDENCE:\s*(\d+)%/i);
 
+      // Calculate confidence score
+      const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1], 10) : 50;
+      
+      // Determine verdict based on confidence score
+      let finalVerdict: 'TRUE' | 'FALSE' | 'MISLEADING' | 'UNCERTAIN' = 'UNCERTAIN';
+      
+      if (confidenceScore >= 75) {
+        // High confidence (>=75) - parse from response or default to FALSE
+        if (verdictMatch) {
+          const parsedVerdict = verdictMatch[1].toUpperCase();
+          finalVerdict = (parsedVerdict === 'TRUE' || parsedVerdict === 'FALSE' || parsedVerdict === 'MISLEADING') 
+            ? parsedVerdict as any 
+            : 'MISLEADING';
+        } else {
+          // No explicit verdict found, assume FALSE if high confidence without TRUE statement
+          finalVerdict = 'FALSE';
+        }
+      } else if (confidenceScore >= 50 && confidenceScore < 75) {
+        // Medium confidence (50-74) - mark as MISLEADING
+        finalVerdict = 'MISLEADING';
+      } else {
+        // Low confidence (<50) - mark as FALSE
+        finalVerdict = 'FALSE';
+      }
+
       const newResult: AnalysisResult = {
         id: Date.now().toString(),
         timestamp: Date.now(),
         claim: targetText || "Visual Analysis",
-        verdict: (verdictMatch ? verdictMatch[1].toUpperCase() : 'UNCERTAIN') as any,
-        confidence: confidenceMatch ? parseInt(confidenceMatch[1], 10) : 75,
+        verdict: finalVerdict,
+        confidence: confidenceScore,
         summary: summaryMatch ? summaryMatch[1].trim() : "Analysis complete.",
         explanation: explanationMatch ? explanationMatch[1].trim() : textOutput,
         evidence: evidenceMatches.map(m => ({
