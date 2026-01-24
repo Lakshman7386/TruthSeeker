@@ -18,6 +18,13 @@ A modern, locally-runnable fact-checking application powered by **Ollama LLMs** 
 - ✅ **Color-Coded Verdicts** - Visual indicators for TRUE (green), FALSE (red), MISLEADING (amber)
 - ✅ **Multiple LLM Support** - Works with Ollama models (gemma3, mistral, llama2, etc.)
 - ✅ **Fallback to Google GenAI** - Optional cloud API support
+- ✅ **Dark Mode & Light Mode** - Beautiful theme toggle for comfortable viewing
+
+## 🎨 Screenshot
+
+![Truth Seeker Dark Mode Interface](https://raw.githubusercontent.com/Lakshman7386/TruthSeeker/main/docs/screenshot-dark.png)
+
+*Dark mode interface showing the verification vault with history and main analysis panel*
 
 ## 📋 Prerequisites
 
