@@ -4,6 +4,7 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import Tesseract from 'tesseract.js';
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const upload = multer();
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb' }));
 
 // Configuration
 const USE_OLLAMA = process.env.USE_OLLAMA === 'true';
@@ -29,13 +31,40 @@ if (!USE_OLLAMA) {
   }
 }
 
+// Function to extract text from image using OCR
+async function extractTextFromImage(imageBuffer) {
+  try {
+    console.log('Extracting text from image using OCR...');
+    const result = await Tesseract.recognize(imageBuffer, 'eng', {
+      logger: m => console.log('OCR Progress:', m.progress)
+    });
+    return result.data.text;
+  } catch (error) {
+    console.error('OCR Error:', error);
+    return '';
+  }
+}
+
 app.post('/api/verify', upload.single('image'), async (req, res) => {
   try {
-    const { claimText } = req.body;
+    let { claimText } = req.body;
+    let extractedImageText = '';
+
+    // Extract text from image if provided
+    if (req.file) {
+      console.log('Image received, extracting text...');
+      extractedImageText = await extractTextFromImage(req.file.buffer);
+      console.log('Extracted text:', extractedImageText);
+    }
+
+    // Combine claim text and extracted image text
+    const finalClaimText = claimText && extractedImageText 
+      ? `${claimText}\n\nText from image: ${extractedImageText}`
+      : claimText || extractedImageText || 'Analyze the provided content.';
     
     const prompt = `
       As a world-class misinformation expert, analyze this input and provide a STRUCTURED report.
-      Input: ${claimText || 'Analyze the provided image context.'}
+      Input: ${finalClaimText}
       
       Follow this strict output structure:
       SUMMARY: [One sentence high-level summary for instant reading]
@@ -109,7 +138,8 @@ app.post('/api/verify', upload.single('image'), async (req, res) => {
 
     res.json({
       text: textOutput,
-      groundingChunks: []
+      groundingChunks: [],
+      extractedImageText: extractedImageText
     });
   } catch (error) {
     console.error(error);
