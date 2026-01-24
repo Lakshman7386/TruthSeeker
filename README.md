@@ -2,9 +2,7 @@
 
 A modern, locally-runnable fact-checking application powered by **Ollama LLMs** and **OCR technology**. Verify claims, detect misinformation, and analyze images—all running on your machine with **zero cloud dependencies**.
 
-![License](https://img.shields.io/badge/license-MIT-blue)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
-![Node](https://img.shields.io/badge/Node-v22-green)
 
 ## ✨ Features
 
@@ -102,14 +100,6 @@ OLLAMA_MODEL=gemma3:4b
 # Google GenAI API Key (only if USE_OLLAMA=false)
 API_KEY=your-api-key-here
 ```
-
-### Switching to Google GenAI
-```env
-USE_OLLAMA=false
-API_KEY=your-google-genai-api-key
-```
-
-No code changes needed - just update `.env`!
 
 ## 📁 Project Structure
 
