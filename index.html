@@ -32,13 +32,17 @@
         }
         
         .main-container {
-            background: radial-gradient(circle at top, #f0fdfa 0%, #f8fafc 100%);
+            background:
+                radial-gradient(circle at 75% -10%, rgba(20, 184, 166, 0.13), transparent 34rem),
+                linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
             min-height: 100vh;
             transition: background 0.3s ease;
         }
         
         html.dark-mode .main-container {
-            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            background:
+                radial-gradient(circle at 75% -10%, rgba(20, 184, 166, 0.12), transparent 34rem),
+                linear-gradient(180deg, #111827 0%, #0b1120 100%);
         }
         
         .glass-card {
@@ -49,21 +53,48 @@
         }
         
         html.dark-mode .glass-card {
-            background: #1e293b;
-            border-color: #334155;
+            background: rgba(23, 35, 54, 0.86);
+            border-color: rgba(100, 116, 139, 0.28);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        }
+
+        .eyebrow {
+            color: #4f46e5;
+            letter-spacing: 0.18em;
+        }
+
+        html.dark-mode .eyebrow {
+            color: #a5b4fc;
+        }
+
+        .hero-orb {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(251, 113, 133, 0.08));
+            border: 1px solid rgba(99, 102, 241, 0.18);
+        }
+
+        html.dark-mode .hero-orb {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(251, 113, 133, 0.08));
+            border-color: rgba(165, 180, 252, 0.16);
+        }
+
+        .workspace-card {
+            box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.34);
+        }
+
+        .soft-divider {
+            border-color: rgba(148, 163, 184, 0.22);
         }
         
         .teal-accent {
-            color: #0d9488;
+            color: #4f46e5;
         }
         
         .teal-bg {
-            background-color: #0d9488;
+            background-color: #4f46e5;
         }
         
         .teal-btn {
-            background: linear-gradient(135deg, #5eead4 0%, #2dd4bf 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 70%, #fb7185 150%);
             transition: all 0.2s;
         }
         
@@ -88,8 +119,52 @@
         }
         
         .dotted-upload:hover {
-            border-color: #99f6e4;
-            background-color: #f0fdfa;
+            border-color: #a5b4fc;
+            background-color: #eef2ff;
+        }
+
+        .coral-dot {
+            background-color: #fb7185;
+        }
+
+        .text-teal-500 {
+            color: #6366f1 !important;
+        }
+
+        .text-teal-600 {
+            color: #4f46e5 !important;
+        }
+
+        .bg-teal-50 {
+            background-color: #eef2ff !important;
+        }
+
+        .bg-teal-500 {
+            background-color: #6366f1 !important;
+        }
+
+        .border-teal-500 {
+            border-color: #6366f1 !important;
+        }
+
+        html.dark-mode .dark\:text-teal-300 {
+            color: #c7d2fe !important;
+        }
+
+        html.dark-mode .dark\:text-teal-400 {
+            color: #a5b4fc !important;
+        }
+
+        html.dark-mode .dark\:bg-teal-900 {
+            background-color: #312e81 !important;
+        }
+
+        html.dark-mode .dark\:bg-teal-950 {
+            background-color: #1e1b4b !important;
+        }
+
+        html.dark-mode .dark\:border-teal-500 {
+            border-color: #818cf8 !important;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
