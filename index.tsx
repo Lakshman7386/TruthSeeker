@@ -238,24 +238,47 @@ const TruthSeeker = () => {
           </div>
         </header>
 
-        <div className="max-w-5xl mx-auto px-6 py-10 lg:py-14">
-          <section className="max-w-3xl mb-10">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-600 dark:text-teal-400 mb-4">Private fact-checking</p>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.05]">
-              Check before you share.
-            </h1>
-            <p className="mt-4 text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
-              Paste a claim or add an image. TruthSeeker breaks it into checkable points and explains what the evidence supports.
-            </p>
+        <div className="max-w-6xl mx-auto px-6 py-8 lg:py-12">
+          <section className="grid lg:grid-cols-[1fr_260px] gap-8 items-end mb-8">
+            <div>
+              <p className="eyebrow text-[10px] font-black uppercase mb-4">Private fact-checking workspace</p>
+              <h1 className="max-w-2xl text-4xl sm:text-5xl lg:text-6xl font-black tracking-[-0.045em] text-slate-900 dark:text-white leading-[0.98]">
+                Make the next share a <span className="text-teal-600 dark:text-teal-400">smarter</span> one.
+              </h1>
+              <p className="max-w-xl mt-5 text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+                TruthSeeker turns posts, headlines, and screenshots into clear claims you can inspect - privately, with your local model.
+              </p>
+            </div>
+            <div className="hero-orb hidden lg:block rounded-3xl p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">What you get</p>
+              <div className="mt-4 space-y-3">
+                {['Claim breakdown', 'Confidence score', 'Evidence trail'].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <span className="w-5 h-5 rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">✓</span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
           {/* Input Section */}
-          <div className="glass-card rounded-3xl p-6 sm:p-8 space-y-7 mb-6 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="glass-card workspace-card rounded-[1.75rem] p-5 sm:p-7 space-y-6 mb-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-100">Start a verification</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Use one input or combine both for more context.</p>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Local & private
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] gap-5">
               <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                    <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-                   What's the claim?
+                   Claim or context
                 </label>
                 <textarea 
                   value={claimText}
@@ -265,9 +288,9 @@ const TruthSeeker = () => {
                 />
               </div>
               <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                   <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  Visual Proof
+                  Optional visual context
                 </label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
@@ -288,8 +311,9 @@ const TruthSeeker = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-700 gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t soft-divider gap-4">
               <div className="flex gap-2">
+                <span className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 self-center mr-1">Try one</span>
                 {examples.map((ex, i) => (
                   <button 
                     key={i} 
@@ -315,7 +339,7 @@ const TruthSeeker = () => {
             )}
           </div>
 
-          <section className="glass-card rounded-3xl mb-12 overflow-hidden">
+          <section className="glass-card rounded-[1.5rem] mb-12 overflow-hidden">
             <button
               onClick={() => setIsSetupOpen(!isSetupOpen)}
               className="w-full flex items-center justify-between gap-4 p-5 sm:px-6 text-left"

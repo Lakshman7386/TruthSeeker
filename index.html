@@ -32,13 +32,17 @@
         }
         
         .main-container {
-            background: radial-gradient(circle at top, #f0fdfa 0%, #f8fafc 100%);
+            background:
+                radial-gradient(circle at 75% -10%, rgba(20, 184, 166, 0.13), transparent 34rem),
+                linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
             min-height: 100vh;
             transition: background 0.3s ease;
         }
         
         html.dark-mode .main-container {
-            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            background:
+                radial-gradient(circle at 75% -10%, rgba(20, 184, 166, 0.12), transparent 34rem),
+                linear-gradient(180deg, #111827 0%, #0b1120 100%);
         }
         
         .glass-card {
@@ -49,9 +53,36 @@
         }
         
         html.dark-mode .glass-card {
-            background: #1e293b;
-            border-color: #334155;
+            background: rgba(23, 35, 54, 0.86);
+            border-color: rgba(100, 116, 139, 0.28);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        }
+
+        .eyebrow {
+            color: #0f766e;
+            letter-spacing: 0.18em;
+        }
+
+        html.dark-mode .eyebrow {
+            color: #5eead4;
+        }
+
+        .hero-orb {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(15, 23, 42, 0.02));
+            border: 1px solid rgba(20, 184, 166, 0.16);
+        }
+
+        html.dark-mode .hero-orb {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.16), rgba(15, 23, 42, 0.22));
+            border-color: rgba(94, 234, 212, 0.14);
+        }
+
+        .workspace-card {
+            box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.34);
+        }
+
+        .soft-divider {
+            border-color: rgba(148, 163, 184, 0.22);
         }
         
         .teal-accent {
