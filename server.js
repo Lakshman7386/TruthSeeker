@@ -19,6 +19,7 @@ const USE_OLLAMA = process.env.USE_OLLAMA === 'true';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'mistral';
 const API_KEY = process.env.API_KEY;
+const MAX_CLAIM_LENGTH = 12000;
 
 // Optional: Import Google GenAI for fallback
 let GoogleGenAI;
@@ -45,9 +46,99 @@ async function extractTextFromImage(imageBuffer) {
   }
 }
 
+function buildPrompt(input) {
+  return `You are TruthSeeker, a rigorous fact-checking analyst. Analyze the user's content without assuming it is true or false.
+
+Use this process:
+1. Split the input into up to five independently checkable claims.
+2. Assess each claim using established knowledge and, when available, retrieved sources.
+3. Separate a claim that is false from one that is technically true but missing important context.
+4. Use UNCERTAIN when the evidence is insufficient, disputed, time-sensitive, or the claim is not objectively verifiable.
+5. Never invent sources, quotes, statistics, or URLs. Explain what evidence would be needed when uncertain.
+
+Confidence is your confidence in the verdict, not how persuasive the writing is:
+- 90-100: directly verifiable, unambiguous evidence
+- 75-89: strong evidence with minor limitations
+- 50-74: mixed, incomplete, or context-dependent evidence
+- 0-49: insufficient evidence or unresolved disagreement
+
+Return ONLY valid JSON matching this shape:
+{
+  "summary": "one concise sentence",
+  "explanation": "objective explanation with the key reasoning and limitations",
+  "verdict": "TRUE | FALSE | MISLEADING | UNCERTAIN",
+  "confidence": 0,
+  "evidence": [
+    {
+      "claim": "specific checkable claim",
+      "reality": "what the evidence supports",
+      "status": "TRUE | FALSE | MISLEADING | UNCERTAIN"
+    }
+  ]
+}
+
+Input to analyze:
+${input}`;
+}
+
+function clampConfidence(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 50;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
+function normalizeAnalysis(value) {
+  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  const validVerdicts = new Set(['TRUE', 'FALSE', 'MISLEADING', 'UNCERTAIN']);
+  const verdict = validVerdicts.has(String(parsed?.verdict).toUpperCase())
+    ? String(parsed.verdict).toUpperCase()
+    : 'UNCERTAIN';
+  const evidence = Array.isArray(parsed?.evidence)
+    ? parsed.evidence.slice(0, 5).map((item) => ({
+        claim: String(item?.claim || '').trim(),
+        reality: String(item?.reality || '').trim(),
+        status: validVerdicts.has(String(item?.status).toUpperCase())
+          ? String(item.status).toUpperCase()
+          : 'UNCERTAIN'
+      })).filter((item) => item.claim && item.reality)
+    : [];
+
+  return {
+    summary: String(parsed?.summary || 'The model could not produce a reliable summary.').trim(),
+    explanation: String(parsed?.explanation || 'Insufficient explanation was returned.').trim(),
+    verdict,
+    confidence: clampConfidence(parsed?.confidence),
+    evidence
+  };
+}
+
+function parseModelResponse(text) {
+  const cleaned = String(text || '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  try {
+    return normalizeAnalysis(JSON.parse(cleaned));
+  } catch {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return normalizeAnalysis(JSON.parse(jsonMatch[0]));
+      } catch {
+        // Fall through to a safe, explicit uncertain result.
+      }
+    }
+    return {
+      summary: 'The model returned an unreadable analysis.',
+      explanation: cleaned || 'No analysis was returned.',
+      verdict: 'UNCERTAIN',
+      confidence: 0,
+      evidence: []
+    };
+  }
+}
+
 app.post('/api/verify', upload.single('image'), async (req, res) => {
   try {
     let { claimText } = req.body;
+    claimText = typeof claimText === 'string' ? claimText.trim().slice(0, MAX_CLAIM_LENGTH) : '';
     let extractedImageText = '';
 
     // Extract text from image if provided
@@ -62,34 +153,35 @@ app.post('/api/verify', upload.single('image'), async (req, res) => {
       ? `${claimText}\n\nText from image: ${extractedImageText}`
       : claimText || extractedImageText || 'Analyze the provided content.';
     
-    const prompt = `
-      As a world-class misinformation expert, analyze this input and provide a STRUCTURED report.
-      Input: ${finalClaimText}
-      
-      Follow this strict output structure:
-      SUMMARY: [One sentence high-level summary for instant reading]
-      EXPLANATION: [Concise but comprehensive objective deep-dive into the facts]
-      
-      EVIDENCE_START
-      CLAIM: [Specific point from input] | REALITY: [Verified fact] | STATUS: [TRUE/FALSE/MISLEADING]
-      EVIDENCE_END
-      
-      FINAL CONCLUSION: VERDICT: [TRUE/FALSE/MISLEADING/UNCERTAIN], CONFIDENCE: [0-100]%
-    `;
+    if (!claimText && !extractedImageText) {
+      return res.status(400).json({ error: 'Provide text or an image to verify.' });
+    }
+
+    const prompt = buildPrompt(finalClaimText);
 
     let textOutput = '';
+    let groundingChunks = [];
 
     if (USE_OLLAMA) {
       // Use Ollama
       console.log(`Using Ollama with model: ${OLLAMA_MODEL}`);
       try {
-        const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+        const response = await fetch(`${OLLAMA_URL}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: OLLAMA_MODEL,
-            prompt: prompt,
-            stream: false
+            messages: [
+              { role: 'system', content: 'You are a precise fact-checking system. Follow the requested JSON contract exactly.' },
+              { role: 'user', content: prompt }
+            ],
+            format: 'json',
+            stream: false,
+            options: {
+              temperature: 0.1,
+              top_p: 0.9,
+              num_ctx: 8192
+            }
           })
         });
 
@@ -98,7 +190,7 @@ app.post('/api/verify', upload.single('image'), async (req, res) => {
         }
 
         const data = await response.json();
-        textOutput = data.response;
+        textOutput = data.message?.content || data.response || '';
       } catch (error) {
         console.error('Ollama request failed:', error.message);
         return res.status(500).json({ 
@@ -130,16 +222,22 @@ app.post('/api/verify', upload.single('image'), async (req, res) => {
       const response = await ai.models.generateContent({
         model,
         contents: { parts: contents },
-        config: { tools: [{ googleSearch: {} }] },
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: 'application/json'
+        },
       });
 
       textOutput = response.text;
+      groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     }
 
+    const analysis = parseModelResponse(textOutput);
     res.json({
       text: textOutput,
-      groundingChunks: [],
-      extractedImageText: extractedImageText
+      analysis,
+      groundingChunks,
+      extractedImageText
     });
   } catch (error) {
     console.error(error);

@@ -354,16 +354,16 @@ Last Updated: January 2026 | v1.0.0
 
 ## 🔒 Limitations & Future Work
 
-This prototype was built within the constraints of the IdeaSprint hackathon, which strictly prohibits the use of third-party APIs and mandates the use of local models.
+TruthSeeker now routes analysis through a local backend so the model and API credentials never run in the browser. The Ollama path uses a low-temperature chat request with an 8k context window and JSON-constrained output. The response is normalized before it reaches the UI, and the UI preserves the model's explicit verdict instead of inferring one from confidence alone.
 
--   **Simulated AI Engine:** The core analysis is currently performed by a **mock AI engine** that runs entirely in the browser. It uses a limited, predefined "knowledge base" to identify a few example claims. This approach was chosen to demonstrate the full UI and user experience without violating hackathon rules.
--   **Limited Knowledge:** The current knowledge base is very small and only serves to prove the concept.
+-   **Evidence quality depends on the selected model:** Local Ollama models do not automatically have current web knowledge. Use the Google provider when fresh, search-grounded evidence is required.
+-   **No persistent evaluation set yet:** The next quality milestone is a labeled benchmark of claims covering true, false, misleading, and uncertain cases, followed by confidence calibration against that set.
 
 ### Future Roadmap
 
 Our goal is to evolve this prototype into a powerful, fully-functional tool. The next steps are:
 
-1.  **Integrate a Real Local LLM:** Replace the mock engine with a genuine, locally-run Large Language Model (e.g., [Ollama](https://ollama.ai/) with Llama 3, Mistral, or Phi-3). This is the highest priority for turning the prototype into a real product.
-2.  **Implement Image Recognition:** Use a local computer vision model (like Tesseract.js for OCR or a custom model) to perform real analysis on images, such as reading text, identifying logos, and reverse image searching against a local database.
-3.  **Expand the Knowledge Base:** For offline fact-checking, we plan to integrate open-source fact-checking databases (like those from reputable journalism sources) that can be stored and accessed locally.
+1.  **Build a labeled evaluation harness:** Measure verdict accuracy, evidence quality, calibration error, and abstention quality across a reproducible dataset.
+2.  **Expand multimodal verification:** Add image understanding beyond OCR, including charts, logos, and visual context.
+3.  **Add a local evidence index:** Integrate reputable fact-checking datasets for offline retrieval-augmented verification.
 4.  **Browser Extension:** Develop a browser extension to allow users to fact-check content directly on social media platforms and news websites.

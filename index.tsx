@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI } from '@google/genai';
 
 interface GroundingChunk {
   web?: {
@@ -18,8 +17,16 @@ interface AnalysisResult {
   confidence: number;
   summary: string;
   explanation: string;
-  evidence: { claim: string; reality: string; status: 'TRUE' | 'FALSE' | 'MISLEADING' }[];
+  evidence: { claim: string; reality: string; status: 'TRUE' | 'FALSE' | 'MISLEADING' | 'UNCERTAIN' }[];
   sources: GroundingChunk[];
+}
+
+interface ModelAnalysis {
+  summary: string;
+  explanation: string;
+  verdict: AnalysisResult['verdict'];
+  confidence: number;
+  evidence: AnalysisResult['evidence'];
 }
 
 const TruthSeeker = () => {
@@ -31,6 +38,7 @@ const TruthSeeker = () => {
   const [history, setHistory] = useState<AnalysisResult[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,105 +84,48 @@ const TruthSeeker = () => {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const verifyClaim = async (textOverride?: string) => {
     const targetText = textOverride || claimText;
     if (!targetText && !imageFile) return;
     
     setIsAnalyzing(true);
     setResult(null);
+    setErrorMessage(null);
 
     try {
       let textOutput = "";
-      let chunks = [];
+      let chunks: GroundingChunk[] = [];
+      let structuredAnalysis: ModelAnalysis | undefined;
 
-      // Attempt to use the backend first, fallback to Direct SDK for demo purposes
-      try {
-        const formData = new FormData();
-        if (targetText) formData.append('claimText', targetText);
-        if (imageFile) formData.append('image', imageFile);
+      const formData = new FormData();
+      if (targetText) formData.append('claimText', targetText);
+      if (imageFile) formData.append('image', imageFile);
 
-        const backendResponse = await fetch('http://localhost:3001/api/verify', {
-          method: 'POST',
-          body: formData,
-        });
+      const backendResponse = await fetch('http://localhost:3001/api/verify', {
+        method: 'POST',
+        body: formData,
+      });
 
-        if (backendResponse.ok) {
-          const data = await backendResponse.json();
-          textOutput = data.text;
-          chunks = data.groundingChunks;
-        } else {
-          throw new Error('Backend unavailable');
-        }
-      } catch (e) {
-        console.log("Backend not detected, falling back to direct SDK...");
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const model = 'gemini-3-pro-preview';
-        let contents: any[] = [];
-        if (imageFile) {
-          const base64Data = await fileToBase64(imageFile);
-          contents.push({ inlineData: { mimeType: imageFile.type, data: base64Data } });
-        }
-        contents.push({ text: `
-          As a world-class misinformation expert, analyze this input and provide a STRUCTURED report.
-          Input: ${targetText || 'Analyze the provided image context.'}
-          Follow this strict structure:
-          SUMMARY: [One sentence high-level summary]
-          EXPLANATION: [Deep-dive facts]
-          EVIDENCE_START
-          CLAIM: [Point] | REALITY: [Fact] | STATUS: [TRUE/FALSE/MISLEADING]
-          EVIDENCE_END
-          FINAL CONCLUSION: VERDICT: [TRUE/FALSE/MISLEADING/UNCERTAIN], CONFIDENCE: [0-100]%
-        ` });
-
-        const response = await ai.models.generateContent({
-          model,
-          contents: { parts: contents },
-          config: { tools: [{ googleSearch: {} }] },
-        });
-        textOutput = response.text || "";
-        chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      if (!backendResponse.ok) {
+        const error = await backendResponse.json().catch(() => ({}));
+        throw new Error(error.error || 'The verification service returned an error.');
       }
 
-      // Parsing
+      const data = await backendResponse.json();
+      textOutput = data.text || "";
+      chunks = data.groundingChunks || [];
+      structuredAnalysis = data.analysis;
+
+      // Keep a compatibility parser for older backends, but prefer the schema-first response.
       const summaryMatch = textOutput.match(/SUMMARY:\s*(.*)/i);
       const explanationMatch = textOutput.match(/EXPLANATION:\s*([\s\S]*?)EVIDENCE_START/i);
       const evidenceMatches = [...textOutput.matchAll(/CLAIM:\s*(.*?)\s*\|\s*REALITY:\s*(.*?)\s*\|\s*STATUS:\s*(TRUE|FALSE|MISLEADING)/gi)];
       const verdictMatch = textOutput.match(/VERDICT:\s*(TRUE|FALSE|MISLEADING|UNCERTAIN)/i);
       const confidenceMatch = textOutput.match(/CONFIDENCE:\s*(\d+)%/i);
 
-      // Calculate confidence score
-      const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1], 10) : 50;
-      
-      // Determine verdict based on confidence score
-      let finalVerdict: 'TRUE' | 'FALSE' | 'MISLEADING' | 'UNCERTAIN' = 'UNCERTAIN';
-      
-      if (confidenceScore >= 75) {
-        // High confidence (>=75) - parse from response or default to FALSE
-        if (verdictMatch) {
-          const parsedVerdict = verdictMatch[1].toUpperCase();
-          finalVerdict = (parsedVerdict === 'TRUE' || parsedVerdict === 'FALSE' || parsedVerdict === 'MISLEADING') 
-            ? parsedVerdict as any 
-            : 'MISLEADING';
-        } else {
-          // No explicit verdict found, assume FALSE if high confidence without TRUE statement
-          finalVerdict = 'FALSE';
-        }
-      } else if (confidenceScore >= 50 && confidenceScore < 75) {
-        // Medium confidence (50-74) - mark as MISLEADING
-        finalVerdict = 'MISLEADING';
-      } else {
-        // Low confidence (<50) - mark as FALSE
-        finalVerdict = 'FALSE';
-      }
+      const confidenceScore = structuredAnalysis?.confidence ?? (confidenceMatch ? parseInt(confidenceMatch[1], 10) : 50);
+      const parsedVerdict = verdictMatch?.[1]?.toUpperCase() as AnalysisResult['verdict'] | undefined;
+      const finalVerdict = structuredAnalysis?.verdict || parsedVerdict || 'UNCERTAIN';
 
       const newResult: AnalysisResult = {
         id: Date.now().toString(),
@@ -182,12 +133,12 @@ const TruthSeeker = () => {
         claim: targetText || "Visual Analysis",
         verdict: finalVerdict,
         confidence: confidenceScore,
-        summary: summaryMatch ? summaryMatch[1].trim() : "Analysis complete.",
-        explanation: explanationMatch ? explanationMatch[1].trim() : textOutput,
-        evidence: evidenceMatches.map(m => ({
+        summary: structuredAnalysis?.summary || (summaryMatch ? summaryMatch[1].trim() : "Analysis complete."),
+        explanation: structuredAnalysis?.explanation || (explanationMatch ? explanationMatch[1].trim() : textOutput),
+        evidence: structuredAnalysis?.evidence || evidenceMatches.map(m => ({
           claim: m[1].trim(),
           reality: m[2].trim(),
-          status: m[3].toUpperCase() as any
+          status: m[3].toUpperCase() as AnalysisResult['evidence'][number]['status']
         })),
         sources: chunks
       };
@@ -196,6 +147,7 @@ const TruthSeeker = () => {
       saveToHistory(newResult);
     } catch (error) {
       console.error("Verification failed:", error);
+      setErrorMessage(error instanceof Error ? error.message : 'Verification failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -338,6 +290,11 @@ const TruthSeeker = () => {
                 {isAnalyzing ? "Scanning..." : "Verify Claim"}
               </button>
             </div>
+            {errorMessage && (
+              <p className="text-sm font-medium text-red-600 dark:text-red-400" role="alert">
+                {errorMessage} Start the backend with <code>npm run backend</code>.
+              </p>
+            )}
           </div>
 
           {/* Results Area */}
