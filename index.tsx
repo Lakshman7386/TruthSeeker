@@ -39,6 +39,8 @@ const TruthSeeker = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +74,12 @@ const TruthSeeker = () => {
     const updated = [item, ...history].slice(0, 20);
     setHistory(updated);
     localStorage.setItem('truth_seeker_history', JSON.stringify(updated));
+  };
+
+  const copyCommand = async (command: string) => {
+    await navigator.clipboard.writeText(command);
+    setCopiedCommand(command);
+    window.setTimeout(() => setCopiedCommand(null), 1600);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,14 +233,24 @@ const TruthSeeker = () => {
             </button>
              <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></div>
-               Verification Network Active
+               Local model ready
              </div>
           </div>
         </header>
 
-        <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="max-w-5xl mx-auto px-6 py-10 lg:py-14">
+          <section className="max-w-3xl mb-10">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-600 dark:text-teal-400 mb-4">Private fact-checking</p>
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.05]">
+              Check before you share.
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
+              Paste a claim or add an image. TruthSeeker breaks it into checkable points and explains what the evidence supports.
+            </p>
+          </section>
+
           {/* Input Section */}
-          <div className="glass-card rounded-[2rem] p-8 space-y-8 mb-12 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
+          <div className="glass-card rounded-3xl p-6 sm:p-8 space-y-7 mb-6 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <label className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
@@ -242,7 +260,7 @@ const TruthSeeker = () => {
                 <textarea 
                   value={claimText}
                   onChange={(e) => setClaimText(e.target.value)}
-                  placeholder="Paste news, a tweet, or a claim..."
+                  placeholder="Paste a headline, post, statistic, or claim..."
                   className="w-full h-40 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 focus:ring-4 focus:ring-teal-500/10 focus:outline-none focus:border-teal-500/50 resize-none text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 />
               </div>
@@ -262,7 +280,7 @@ const TruthSeeker = () => {
                       <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-2 text-slate-400 dark:text-slate-500 group-hover:bg-teal-100 dark:group-hover:bg-teal-900 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       </div>
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500">Add Image Context</span>
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500">Add a screenshot or image</span>
                     </div>
                   )}
                   <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -285,7 +303,7 @@ const TruthSeeker = () => {
               <button 
                 onClick={() => verifyClaim()}
                 disabled={isAnalyzing || (!claimText && !imageFile)}
-                className="teal-btn w-full sm:w-auto px-12 py-3.5 rounded-2xl text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-teal-500/30 disabled:opacity-50"
+                className="teal-btn w-full sm:w-auto px-10 py-3.5 rounded-2xl text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-teal-500/30 disabled:opacity-50"
               >
                 {isAnalyzing ? "Scanning..." : "Verify Claim"}
               </button>
@@ -296,6 +314,66 @@ const TruthSeeker = () => {
               </p>
             )}
           </div>
+
+          <section className="glass-card rounded-3xl mb-12 overflow-hidden">
+            <button
+              onClick={() => setIsSetupOpen(!isSetupOpen)}
+              className="w-full flex items-center justify-between gap-4 p-5 sm:px-6 text-left"
+              aria-expanded={isSetupOpen}
+            >
+              <span className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center font-black">i</span>
+                <span>
+                  <span className="block text-sm font-black text-slate-800 dark:text-slate-100">Connect a different Ollama model</span>
+                  <span className="block text-xs text-slate-400 dark:text-slate-500 mt-1">Already using one? No changes needed.</span>
+                </span>
+              </span>
+              <span className="text-slate-400 text-xl">{isSetupOpen ? '-' : '+'}</span>
+            </button>
+
+            {isSetupOpen && (
+              <div className="border-t border-slate-100 dark:border-slate-700 p-5 sm:p-6 bg-slate-50/70 dark:bg-slate-900/40">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    ['1', 'Download a model', 'Pull any model from Ollama, then copy its exact name.'],
+                    ['2', 'Update .env', 'Set OLLAMA_MODEL to the same name in the project root.'],
+                    ['3', 'Restart backend', 'Restart the backend so it reloads the new model.']
+                  ].map(([step, title, description]) => (
+                    <div key={step} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+                      <span className="text-xs font-black text-teal-600 dark:text-teal-400">STEP {step}</span>
+                      <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 mt-2">{title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">{description}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {[
+                    ['Download example', 'ollama pull qwen3:4b'],
+                    ['Project .env', 'OLLAMA_MODEL=qwen3:4b'],
+                    ['Restart the backend', 'npm run backend']
+                  ].map(([label, command]) => (
+                    <div key={command} className="flex items-center justify-between gap-3 bg-slate-900 dark:bg-black rounded-xl px-4 py-3">
+                      <div className="min-w-0">
+                        <span className="block text-[10px] uppercase tracking-widest text-slate-500">{label}</span>
+                        <code className="block text-xs text-teal-300 mt-1 truncate">{command}</code>
+                      </div>
+                      <button
+                        onClick={() => copyCommand(command)}
+                        className="shrink-0 text-[10px] font-black uppercase tracking-wider text-white bg-slate-700 hover:bg-teal-700 rounded-lg px-3 py-2 transition-colors"
+                      >
+                        {copiedCommand === command ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-5 leading-relaxed">
+                  Keep <code className="text-teal-600 dark:text-teal-400">USE_OLLAMA=true</code> and <code className="text-teal-600 dark:text-teal-400">OLLAMA_URL=http://localhost:11434</code>. The model name must match <code className="text-teal-600 dark:text-teal-400">ollama list</code> exactly.
+                </p>
+              </div>
+            )}
+          </section>
 
           {/* Results Area */}
           {result && (
