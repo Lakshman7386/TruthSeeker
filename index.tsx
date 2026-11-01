@@ -41,6 +41,8 @@ const TruthSeeker = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+  const [expandedEvidence, setExpandedEvidence] = useState<number | null>(null);
+  const [isReportCopied, setIsReportCopied] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +82,24 @@ const TruthSeeker = () => {
     await navigator.clipboard.writeText(command);
     setCopiedCommand(command);
     window.setTimeout(() => setCopiedCommand(null), 1600);
+  };
+
+  const copyReport = async () => {
+    if (!result) return;
+    const report = [
+      `TruthSeeker verdict: ${result.verdict} (${result.confidence}% confidence)`,
+      `Claim: ${result.claim}`,
+      `Summary: ${result.summary}`,
+      '',
+      ...result.evidence.map((item, index) =>
+        `${index + 1}. ${item.claim}\nStatus: ${item.status}\nReality: ${item.reality}`
+      ),
+      '',
+      `Analysis: ${result.explanation}`
+    ].join('\n');
+    await navigator.clipboard.writeText(report);
+    setIsReportCopied(true);
+    window.setTimeout(() => setIsReportCopied(false), 1800);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,6 +446,15 @@ const TruthSeeker = () => {
                    <p className="text-xl font-bold leading-relaxed text-slate-800 dark:text-slate-200 italic">"{result.summary}"</p>
                 </div>
 
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Claim evidence map</p>
+                  <button
+                    onClick={copyReport}
+                    className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-white transition-colors"
+                  >
+                    {isReportCopied ? 'Report copied' : 'Copy report'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {result.evidence.map((item, idx) => (
                     <div key={idx} className="bg-white/80 dark:bg-slate-800/50 p-6 rounded-2xl border border-white dark:border-slate-700 flex flex-col gap-3 shadow-sm transition-transform hover:-translate-y-1">
@@ -440,6 +469,32 @@ const TruthSeeker = () => {
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 leading-snug">{item.claim}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-50 dark:border-slate-700 pt-2 mt-2">{item.reality}</p>
                       </div>
+                      <button
+                        onClick={() => setExpandedEvidence(expandedEvidence === idx ? null : idx)}
+                        className="text-left text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-white transition-colors"
+                        aria-expanded={expandedEvidence === idx}
+                      >
+                        {expandedEvidence === idx ? 'Hide verification trail' : 'View verification trail'}
+                      </button>
+                      {expandedEvidence === idx && (
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            This point is part of the model's structured analysis. Review the linked citations below as supporting context; confidence is an estimate, not a guarantee of truth.
+                          </p>
+                          {result.sources.length > 0 ? (
+                            <div className="space-y-2">
+                              {result.sources.slice(0, 3).map((src, sourceIndex) => src.web && (
+                                <a key={sourceIndex} href={src.web.uri} target="_blank" rel="noopener" className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300">
+                                  <span className="coral-dot w-1.5 h-1.5 rounded-full shrink-0"></span>
+                                  <span className="truncate">{src.web.title}</span>
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">No linked source was returned for this analysis.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
