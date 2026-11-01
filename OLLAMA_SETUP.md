@@ -55,7 +55,7 @@ npm run start
 npm run start
 ```
 This starts both backend and frontend:
-- Backend: `http://localhost:3000`
+- Backend: `http://localhost:3001`
 - Frontend: `http://localhost:5173`
 
 ### Option 2: Separate Terminals
@@ -111,7 +111,7 @@ API_KEY=your-key-here
 
 ### Backend connection errors
 - Verify backend is running: `npm run backend`
-- Check port 3000 is not in use
+- Check port 3001 is not in use
 
 ## Performance Tips
 
